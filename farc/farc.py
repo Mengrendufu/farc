@@ -8,6 +8,15 @@ import signal
 from functools import wraps
 
 
+def _get_or_create_event_loop():
+    try:
+        return asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        return loop
+
+
 class Spy():
     """Spy is the debugging system for farc.
     farc contains a handful of Spy.on_*() methods
@@ -374,7 +383,7 @@ class Framework():
     - the table subscriptions to events
     """
 
-    _event_loop = asyncio.get_event_loop()
+    _event_loop = _get_or_create_event_loop()
 
     # The Framework maintains a registry of Ahsms in a list.
     _ahsm_registry = []
@@ -637,7 +646,7 @@ def run_forever():
     """Runs the asyncio event loop with and
     ensures state machines are exited upon a KeyboardInterrupt.
     """
-    loop = asyncio.get_event_loop()
+    loop = Framework._event_loop
     try:
         loop.run_forever()
     except KeyboardInterrupt:

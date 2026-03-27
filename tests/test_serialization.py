@@ -41,16 +41,24 @@ class SimpleSM(farc.Ahsm):
 
 def async_test(f):
     def wrapper(*args, **kwargs):
-        coro = asyncio.coroutine(f)
-        future = coro(*args, **kwargs)
-        loop = asyncio.get_event_loop()
+        async def coro():
+            f(*args, **kwargs)
+
+        future = coro()
+        loop = farc.Framework._event_loop
         loop.run_until_complete(future)
     return wrapper
 
 
 class TestSerialization(unittest.TestCase):
+    def _reset_framework(self):
+        farc.Framework._ahsm_registry = []
+        farc.Framework._priority_dict = {}
+
     def setUp(self):
         global v
+        self._reset_framework()
+        v = ["one",2,3]
 
         # create an event with the mutable value
         farc.Signal.register("APPEND")
@@ -58,6 +66,9 @@ class TestSerialization(unittest.TestCase):
 
         self.sm = SimpleSM()
         self.sm.start(0)
+
+    def tearDown(self):
+        self._reset_framework()
 
 
     @async_test
